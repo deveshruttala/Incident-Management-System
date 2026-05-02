@@ -1,0 +1,38 @@
+/* Global stylesheet.
+ *
+ * Tailwind handles 99% of the styling per-component. The few rules below
+ * are the ones that genuinely belong in a global sheet:
+ *   - the three Tailwind layers (base / components / utilities)
+ *   - full-height root containers so flex layouts in App.tsx can stretch
+ *   - a single body font stack matching the dark theme
+ *   - subtle dark-mode scrollbars that don't fight with the slate-950 BG
+ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Fill the viewport so the dashboard's flex column can use h-screen */
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    sans-serif;
+}
+
+/* Dark, low-contrast scrollbars that match the slate palette */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.4);
+}

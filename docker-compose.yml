@@ -1,0 +1,79 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ims
+      POSTGRES_PASSWORD: ims
+      POSTGRES_DB: ims
+    ports:
+      - "5433:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ims"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mongo:
+    image: mongo:7
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ping:1}).ok"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: ./backend
+    environment:
+      POSTGRES_DSN: postgresql://ims:ims@postgres:5432/ims
+      MONGO_URI: mongodb://mongo:27017
+      MONGO_DB: ims
+      REDIS_URL: redis://redis:6379/0
+      LOG_LEVEL: INFO
+      QUEUE_MAX_SIZE: "50000"
+      WORKER_COUNT: "8"
+      DEBOUNCE_WINDOW_SECONDS: "10"
+      DEBOUNCE_MAX_SIGNALS: "100"
+      RATE_LIMIT_PER_SECOND: "12000"
+      RATE_LIMIT_BURST: "20000"
+      METRICS_PRINT_INTERVAL_SECONDS: "5"
+      # Security — disabled by default for local dev. Override at deploy time:
+      #   INGEST_API_KEY=$(openssl rand -hex 32) docker compose up
+      INGEST_API_KEY: "${INGEST_API_KEY:-}"
+      CORS_ALLOW_ORIGINS: "${CORS_ALLOW_ORIGINS:-*}"
+      MAX_REQUEST_BODY_BYTES: "1048576"
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+volumes:
+  pg_data:
+  mongo_data:
